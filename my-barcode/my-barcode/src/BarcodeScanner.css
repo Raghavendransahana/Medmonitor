@@ -1,0 +1,59 @@
+/* BarcodeScanner.css
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #4a90e2, #0072ff);
+    color: #ffffff;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .barcode-scanner-container {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .webcam-container {
+    margin: 20px 0;
+    border: 3px solid #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .webcam-container video {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+  }
+  
+  .capture-button {
+    background-color: #ffffff;
+    color: #0072ff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .capture-button:hover {
+    background-color: #0072ff;
+    color: #ffffff;
+  }
+  
+  .instructions {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: #eeeeee;
+  }
+   */

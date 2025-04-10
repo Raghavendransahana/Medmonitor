@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode Scanner</title>
+</head>
+<body>
+  <video id="video" width="320" height="240" autoplay></video>
+  <canvas id="canvas" style="display: none;"></canvas>
+  <button id="capture">Capture Image</button>
+  <div id="output"></div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture');
+    const ctx = canvas.getContext('2d');
+    const outputDiv = document.getElementById('output');
+
+    // Start the webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => console.error("Error accessing webcam: ", err));
+
+    // Capture the image when the button is clicked
+    captureButton.addEventListener('click', async () => {
+      // Draw the current video frame to the canvas
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert the canvas image to a Blob (binary data)
+      canvas.toBlob(async (blob) => {
+        try {
+          // Prepare FormData to send the image to the backend
+          const formData = new FormData();
+          formData.append('image', blob, 'barcode.png');
+
+          // Send the image to the backend for processing
+          const response = await fetch('http://localhost:3001/decode-barcode', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const { extractedNumber, status } = data;
+
+            // Display the backend response in the outputDiv
+            outputDiv.innerHTML = `
+              <p>Extracted Number: ${extractedNumber || 'N/A'}</p>
+              <p>Database Status: ${status === 'exists' ? 'Medicine Found' : 'Medicine Not Found'}</p>
+            `;
+          } else {
+            const errorData = await response.json();
+            outputDiv.innerHTML = `<p>Error: ${errorData.error || 'Failed to decode barcode.'}</p>`;
+          }
+        } catch (error) {
+          console.error('Error communicating with the backend:', error);
+          outputDiv.innerHTML = `<p>Error: Could not communicate with the server.</p>`;
+        }
+      }, 'image/png');
+    });
+  </script>
+</body>
+</html>

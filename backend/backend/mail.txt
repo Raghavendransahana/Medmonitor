@@ -1,0 +1,30 @@
+
+// Registration route
+app.post("/register", async (req, res) => {
+  const { Username, NIN, Email, HospitalName, HospitalLocation } = req.body;
+
+  if (!Username || !NIN || !Email || !HospitalName || !HospitalLocation) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  
+  const mailOptions = {
+    from: "happyhappyperson13@gmail.com", // Sender email
+    to: [Email, `happyhappyperson13@gmail.com`], // Both the user's email and your admin email
+    subject: "Registration Confirmation",
+    text: `Hello ${Username},\n\nThank you for registering with the following details:\nNIN: ${NIN}\nHospital Name: ${HospitalName}\nHospital Location: ${HospitalLocation}\n\nWe will contact you within 3 business days!\n\nBest regards,\nTeam`,
+  };
+  
+
+  try {
+    console.log("Sending registration confirmation email...");
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully to:", Email);
+    res.status(200).json({ message: "Registration successful!" });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    res.status(500).json({ message: "Failed to send email." });
+  }
+  
+  
+});

@@ -1,0 +1,631 @@
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+    // Get the uploaded file from the request
+    const file = req.file;
+  
+    // Create a temporary file from the uploaded image data
+    const tempFilePath = path.join(__dirname, 'uploads', file.filename);
+    fs.writeFileSync(tempFilePath, file.buffer);
+  
+    try {
+      // Decode the barcode from the temporary file
+      const result = await codeReader.decodeFromImageUrl(tempFilePath);
+      res.json({ decodedText: result.text });
+    } catch (error) {
+      console.error('Error decoding barcode:', error);
+      res.status(500).json({ error: 'Failed to decode barcode' });
+    } finally {
+      // Remove the temporary file
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+
+
+
+
+
+
+
+
+  full code
+  const express = require('express');
+const multer = require('multer'); // Add multer middleware
+const cors = require('cors');
+const { BrowserMultiFormatReader } = require('@zxing/library');
+const fs = require('fs'); // Add fs module for file handling
+const path = require('path');
+
+const app = express();
+const port = 3001;
+
+// Use CORS middleware
+app.use(cors());
+
+// Set up multer middleware for file uploads
+const upload = multer({ dest: 'uploads/' }); // Specify upload directory
+
+// Initialize ZXing reader
+const codeReader = new BrowserMultiFormatReader();
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+    // Get the uploaded file from the request
+    const file = req.file;
+  
+    // Check if a file was uploaded
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+  
+    // Create a temporary file from the uploaded image data
+    const tempFilePath = path.join(__dirname, 'uploads', file.filename);
+    
+    // Write the uploaded file buffer to the temporary file
+    try {
+      fs.writeFileSync(tempFilePath, file.buffer); // This should work if file.buffer is defined
+  
+      // Decode the barcode from the temporary file
+      const result = await codeReader.decodeFromImageUrl(tempFilePath);
+      res.json({ decodedText: result.text });
+    } catch (error) {
+      console.error('Error decoding barcode:', error);
+      res.status(500).json({ error: 'Failed to decode barcode' });
+    } finally {
+      // Remove the temporary file
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+  });
+
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+full code that actually works
+
+const express = require('express');
+const multer = require('multer');
+const cors = require('cors');
+const { MultiFormatReader, BarcodeFormat, DecodeHintType } = require('@zxing/library');  // Updated import
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const port = 3001;
+
+app.use(cors());
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// Set up multer middleware for file uploads
+const upload = multer({ dest: uploadsDir });
+
+// Initialize ZXing reader
+const codeReader = new MultiFormatReader();
+codeReader.setHints(new Map([
+  [DecodeHintType.TRY_HARDER, true]
+]));
+
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+  console.log('Received a request to decode a barcode.');
+
+  const file = req.file;
+  console.log('Uploaded file metadata:', file);
+
+  if (!file) {
+    console.error('No file uploaded.');
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const filePath = file.path;
+  console.log('File path for decoding:', filePath);
+
+  // Log the image size
+  console.log('Image size (in bytes):', file.size);
+
+  try {
+    console.log('Starting barcode decoding...');
+    // Ensure the file exists before decoding
+    if (fs.existsSync(filePath)) {
+      console.log('File exists, proceeding with decoding...');
+
+      // Read the image from file system (in Node.js environment)
+      const { readFileSync } = require('fs');
+      const imageBuffer = readFileSync(filePath);
+
+      const result = codeReader.decode(imageBuffer);
+      console.log('Decoding successful:', result.getText());
+      res.json({ decodedText: result.getText() });
+    } else {
+      console.error('File does not exist at:', filePath);
+      res.status(500).json({ error: 'File not found for decoding' });
+    }
+  } catch (error) {
+    console.error('Error decoding barcode:', error.message);
+    res.status(500).json({ error: 'Failed to decode barcode', details: error.message });
+  } finally {
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log('Temporary file deleted:', filePath);
+      }
+    } catch (cleanupError) {
+      console.error('Error deleting temporary file:', cleanupError.message);
+    }
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+app.get('/', (req, res) => {
+  res.send('Server is running! Use POST /decode-barcode to decode barcodes.');
+});
+
+
+
+
+
+
+
+
+that that actually works perfevtly fine.
+const express = require('express');
+const multer = require('multer');
+const cors = require('cors');
+const { MultiFormatReader, BarcodeFormat, DecodeHintType } = require('@zxing/library');  // Updated import
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const port = 3001;
+
+app.use(cors());
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// Set up multer middleware for file uploads
+const upload = multer({ dest: uploadsDir });
+
+// Initialize ZXing reader
+const codeReader = new MultiFormatReader();
+codeReader.setHints(new Map([
+  [DecodeHintType.TRY_HARDER, true]
+]));
+
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+  console.log('Received a request to decode a barcode.');
+
+  const file = req.file;
+  console.log('Uploaded file metadata:', file);
+
+  if (!file) {
+    console.error('No file uploaded.');
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const filePath = file.path;
+  console.log('File path for decoding:', filePath);
+
+  // Log the image size
+  console.log('Image size (in bytes):', file.size);
+
+  try {
+    console.log('Starting barcode decoding...');
+    // Ensure the file exists before decoding
+    if (fs.existsSync(filePath)) {
+      console.log('File exists, proceeding with decoding...');
+
+      // Read the image from file system (in Node.js environment)
+      const { readFileSync } = require('fs');
+      const imageBuffer = readFileSync(filePath);
+
+      const result = codeReader.decode(imageBuffer);
+      console.log('Decoding successful:', result.getText());
+      res.json({ decodedText: result.getText() });
+    } else {
+      console.error('File does not exist at:', filePath);
+      res.status(500).json({ error: 'File not found for decoding' });
+    }
+  } catch (error) {
+    console.error('Error decoding barcode:', error.message);
+    res.status(500).json({ error: 'Failed to decode barcode', details: error.message });
+  } finally {
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log('Temporary file deleted:', filePath);
+      }
+    } catch (cleanupError) {
+      console.error('Error deleting temporary file:', cleanupError.message);
+    }
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+app.get('/', (req, res) => {
+  res.send('Server is running! Use POST /decode-barcode to decode barcodes.');
+});
+
+
+code with preprocessing
+const express = require('express');
+const multer = require('multer');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+const {
+  MultiFormatReader,
+  DecodeHintType,
+  BinaryBitmap,
+  HybridBinarizer,
+  RGBLuminanceSource,
+} = require('@zxing/library');
+
+const app = express();
+const port = 3001;
+
+app.use(cors());
+
+// Ensure uploads and processed directories exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const processedDir = path.join(__dirname, 'processed');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+if (!fs.existsSync(processedDir)) {
+  fs.mkdirSync(processedDir);
+}
+
+// Set up multer middleware for file uploads
+const upload = multer({ dest: uploadsDir });
+
+// Initialize ZXing reader
+const codeReader = new MultiFormatReader();
+const hints = new Map();
+hints.set(DecodeHintType.POSSIBLE_FORMATS, ['QR_CODE', 'CODE_128', 'EAN_13', 'UPC_A']);
+codeReader.setHints(hints);
+
+// Image preprocessing function
+
+async function preprocessImage(filePath) {
+  try {
+    const imageBuffer = fs.readFileSync(filePath);
+
+    console.log('Starting image preprocessing...');
+
+    // Apply preprocessing steps: resizing, grayscale conversion, contrast enhancement, and binarization
+    const processedImage = await sharp(imageBuffer)
+      .resize({ width: 600 }) // Resize for clarity
+      .grayscale() // Convert to grayscale
+      .modulate({ brightness: 2 }) // Enhance contrast
+      .normalize() // Improve contrast even more
+      .threshold(160) // Softened threshold for better binarization
+      .sharpen() // Sharpen the image to make it more defined
+      .toBuffer();
+
+    // Save processed image for verification
+    const processedFilePath = path.join(processedDir, 'processed-image.png');
+    await sharp(processedImage).toFile(processedFilePath);
+    console.log(`Processed image saved at: ${processedFilePath}`);
+
+    return processedImage;
+  } catch (error) {
+    console.error('Error processing image:', error.message);
+    throw error;
+  }
+}
+
+app.get('/', (req, res) => {
+  res.send('Server is running! Use POST /decode-barcode to decode barcodes.');
+});
+
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+  console.log('Received a request to decode a barcode.');
+
+  const file = req.file;
+  if (!file) {
+    console.error('No file uploaded.');
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const filePath = file.path;
+  console.log('Uploaded file metadata:', file);
+
+  try {
+    console.log('Starting barcode decoding...');
+    const processedImage = await preprocessImage(filePath);
+
+    // Log image dimensions
+    const { width, height } = await sharp(processedImage).metadata();
+    console.log(`Processed image dimensions: ${width}x${height}`);
+    console.log(`Processed image buffer length: ${processedImage.length}`);
+
+    // Convert to RGBLuminanceSource for decoding
+    const luminanceSource = new RGBLuminanceSource(processedImage, width, height);
+    const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource));
+
+    // Decode the barcode
+    const result = codeReader.decode(binaryBitmap);
+    console.log('Decoding successful:', result.getText());
+    res.json({ decodedText: result.getText() });
+  } catch (error) {
+    console.error('Error decoding barcode:', error.message);
+    res.status(500).json({ error: 'Failed to decode barcode', details: error.message });
+  } finally {
+    // Clean up the uploaded file
+    try {
+      fs.unlinkSync(filePath);
+      console.log('Temporary file deleted:', filePath);
+    } catch (cleanupError) {
+      console.error('Error deleting temporary file:', cleanupError.message);
+    }
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+
+before changing into number
+
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer'); // Import multer for handling FormData
+const sharp = require('sharp'); // Import sharp for image processing
+const { MultiFormatReader, DecodeHintType, BinaryBitmap, HybridBinarizer, RGBLuminanceSource } = require('@zxing/library');
+
+const app = express();
+const port = 3001;
+
+app.use(cors());
+
+// Set up multer to handle multipart/form-data (image uploads)
+const storage = multer.memoryStorage(); // Store the file in memory
+const upload = multer({ storage: storage }); // Use the multer instance
+
+// Initialize ZXing reader (remains unchanged)
+const codeReader = new MultiFormatReader();
+const hints = new Map();
+hints.set(DecodeHintType.POSSIBLE_FORMATS, ['QR_CODE', 'CODE_128', 'EAN_13', 'UPC_A']);
+codeReader.setHints(hints);
+
+// Ensure processed directory exists
+const processedDir = path.join(__dirname, 'processed');
+if (!fs.existsSync(processedDir)) {
+  fs.mkdirSync(processedDir);
+}
+
+// Image preprocessing function for brightness and contrast
+async function preprocessImage(imageData) {
+  try {
+    // Process image: Adjust brightness and contrast
+    const processedImage = await sharp(imageData)
+      .modulate({ brightness: 1.5 }) // Increase brightness (you can adjust the factor)
+      .normalize() // Improve contrast
+      .toBuffer();
+
+    // Optionally save the processed image for debugging
+    const processedFilePath = path.join(processedDir, 'processed-image.jpg');
+    await sharp(processedImage).toFile(processedFilePath);
+    console.log(`Processed image saved at: ${processedFilePath}`);
+
+    return processedImage;
+  } catch (error) {
+    console.error('Error processing image:', error.message);
+    throw error;
+  }
+}
+
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+  console.log('Received a request to decode a barcode.');
+  console.log('Request file:', req.file); // Log the received file
+  
+  if (!req.file) {
+    console.error('No image data received.');
+    return res.status(400).json({ error: 'No image data received' });
+  }
+
+  try {
+    console.log('Starting barcode decoding...');
+
+    // Process the image (file is in memory as a buffer)
+    const processedImage = await preprocessImage(req.file.buffer);
+
+    // Convert to RGBLuminanceSource for decoding
+    const luminanceSource = new RGBLuminanceSource(processedImage, req.file.size, req.file.size);
+    const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource));
+
+    // Try decoding the barcode
+    const result = codeReader.decode(binaryBitmap);
+    if (result) {
+      console.log('Decoding successful:', result.getText());
+      res.json({ decodedText: result.getText() });
+    } else {
+      console.log('No result detected from the barcode.');
+      res.status(400).json({ error: 'No barcode detected' });
+    }
+  } catch (error) {
+    console.error('Error decoding barcode:', error.message);
+    res.status(500).json({ error: 'Failed to decode barcode', details: error.message });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+
+
+befor connection
+const express = require('express');
+const multer = require('multer');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const Tesseract = require('tesseract.js');
+const sharp = require('sharp');
+
+const app = express();
+const port = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+const uploadsDir = path.join(__dirname, 'uploads');
+const processedDir = path.join(__dirname, 'processed');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+if (!fs.existsSync(processedDir)) fs.mkdirSync(processedDir);
+
+const upload = multer({ dest: uploadsDir });
+
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+  console.log('Received a request to decode a barcode.');
+
+  const file = req.file;
+  if (!file) {
+    console.error('No file uploaded.');
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const filePath = file.path;
+  console.log('File path for OCR:', filePath);
+
+  try {
+    const processedImagePath = await preprocessImage(filePath);
+    console.log('Starting OCR processing on preprocessed image...');
+    
+    const text = await performOCR(processedImagePath);
+    const number = extractNumberFromText(text);
+
+    if (number) {
+      console.log('Extracted Number:', number);
+      res.json({ extractedNumber: number });
+    } else {
+      console.error('No number found in the OCR text');
+      res.status(400).json({ error: 'No number found in the image text' });
+    }
+  } catch (error) {
+    console.error('Error processing image with OCR:', error.message);
+    res.status(500).json({ error: 'Failed to process image with OCR', details: error.message });
+  } finally {
+    try {
+      if (fs.existsSync(filePath)) {
+        await fs.promises.unlink(filePath); // Async unlink
+        console.log('Temporary file deleted:', filePath);
+      }
+    } catch (cleanupError) {
+      console.error('Error deleting temporary file:', cleanupError.message);
+    }
+  }
+});
+
+const preprocessImage = async (filePath) => {
+  const processedImagePath = path.join(processedDir, 'processed_image.png');
+  
+  try {
+    const metadata = await sharp(filePath).metadata();
+
+    if (!metadata.width || !metadata.height) {
+      throw new Error('Could not retrieve image dimensions');
+    }
+
+    console.log('Image Dimensions:', metadata);
+
+    const cropHeight = Math.min(100, metadata.height - Math.floor(metadata.height * 0.7));
+    const cropWidth = metadata.width;
+    const cropTop = Math.floor(metadata.height * 0.7);
+
+    if (cropTop + cropHeight > metadata.height) {
+      throw new Error('Calculated cropping area exceeds image height.');
+    }
+
+    console.log(`Cropping area: top=${cropTop}, height=${cropHeight}, width=${cropWidth}`);
+
+    await sharp(filePath)
+      .extract({ left: 0, top: cropTop, width: cropWidth, height: cropHeight })
+      .resize({ width: 1500 })
+      .grayscale()
+      .normalize()
+      .sharpen()
+      .toFile(processedImagePath);
+
+    console.log('Image preprocessed and saved at:', processedImagePath);
+    return processedImagePath;
+  } catch (error) {
+    console.error('Error during image preprocessing:', error.message);
+    throw new Error('Image preprocessing failed');
+  }
+};
+
+const performOCR = async (processedImagePath) => {
+  try {
+    const { data: { text } } = await Tesseract.recognize(
+      processedImagePath,
+      'eng',
+      {
+        logger: (m) => console.log(m),
+        config: {
+          tessedit_char_whitelist: '0123456789', // Only digits
+        },
+      }
+    );
+
+    console.log('OCR Result:', text.trim());
+    return text.trim();
+  } catch (error) {
+    console.error('Error during OCR:', error.message);
+    throw new Error('OCR failed');
+  }
+};
+
+const extractNumberFromText = (text) => {
+  // Regex to capture only digits, assuming the barcode number has exactly 6 digits
+  const regex = /\d{6}/g; // Match exactly 6 digits
+  const matches = text.match(regex);
+
+  if (matches && matches.length > 0) {
+    return matches[0]; // Return the first match, which should be the barcode number
+  }
+
+  return null;
+};
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+app.get('/', (req, res) => {
+  res.send('Server is running! Use POST /decode-barcode to process image.');
+});

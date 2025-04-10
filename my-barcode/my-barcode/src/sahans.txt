@@ -1,0 +1,115 @@
+import React, { useRef, useState } from 'react';
+import Webcam from 'react-webcam';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Proper from './Proper';
+
+const BarcodeScanner = () => {
+  const webcamRef = useRef(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [extractedNumber, setExtractedNumber] = useState(null); // State to hold the extracted number
+  const [databaseStatus, setDatabaseStatus] = useState(null); // State to hold the database check result
+  const [errorMessage, setErrorMessage] = useState(null); // State for error messages
+  const [bgColor, setBgColor] = useState('white'); // State to manage the background color
+
+  const capture = () => {
+    const imageSrc = webcamRef.current.getScreenshot(); // Capture the image
+    if (imageSrc) {
+      setCapturedImage(imageSrc); // Set the captured image to state
+      console.log('Image captured successfully!');
+      sendImageToBackend(imageSrc); // Send the captured image to backend
+    } else {
+      console.error('Failed to capture image.');
+      setErrorMessage('Failed to capture image.');
+    }
+  };
+
+  async function sendImageToBackend(imageSrc) {
+    try {
+      setExtractedNumber(null);
+      setDatabaseStatus(null);
+      setErrorMessage(null);
+
+      const blob = await fetch(imageSrc).then((res) => res.blob());
+
+      const formData = new FormData();
+      formData.append('image', blob, 'capturedImage.jpg');
+
+      const response = await fetch('http://localhost:3001/decode-barcode', {
+        method: 'POST',
+        body: formData, 
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Backend response:', data);
+
+      if (data.extractedNumber) {
+        setExtractedNumber(data.extractedNumber);
+
+       
+        if (data.status === 'exists') {
+          setDatabaseStatus('Medicine is good to use!');
+          
+          <Proper/>
+        } else if (data.status === 'not_found') {
+          setDatabaseStatus('Medicine is counterfeit');
+          setBgColor('lightcoral'); // Change background color to light coral
+        } else {
+          setDatabaseStatus('Unknown database response.');
+          setBgColor('lightgray'); // Set background color to light gray for unknown
+        }
+      } else {
+        setErrorMessage('No number detected in the image.');
+      }
+    } catch (error) {
+      console.error('Error communicating with backend:', error);
+      setErrorMessage(`Error: ${error.message}`);
+    }
+  }
+
+  return (
+    <div style={{ textAlign: 'center', marginTop: '20px', backgroundColor:'red' }}>
+      <div style={{ backgroundColor: bgColor, minHeight: '100vh' }}>
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          screenshotFormat="image/jpeg"
+          width={400}
+        />
+        <button onClick={capture} style={{ marginTop: '10px', padding: '10px 20px' }}>
+          Capture
+        </button>
+
+        {capturedImage && (
+          <div style={{ marginTop: '20px' }}>
+            <h2>Captured Image:</h2>
+            <img src={capturedImage} alt="Captured" width={400} />
+          </div>
+        )}
+
+        {extractedNumber && (
+          <div style={{ marginTop: '20px' }}>
+            <h3>Extracted Number: {extractedNumber}</h3>
+          </div>
+        )}
+
+        {databaseStatus && (
+          <div style={{ marginTop: '20px' }}>
+            <h3>{databaseStatus}</h3>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ color: 'red' }}>Error: {errorMessage}</h3>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default BarcodeScanner;

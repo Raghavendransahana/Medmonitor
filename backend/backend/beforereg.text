@@ -1,0 +1,182 @@
+const express = require('express');
+const multer = require('multer');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const Tesseract = require('tesseract.js');
+const sharp = require('sharp');
+const mysql = require('mysql2'); 
+
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'peaceandpeace', 
+  database: 'drugs',
+});
+
+
+db.connect((err) => {
+  if (err) {
+    console.error('Database connection failed:', err.message);
+    process.exit(1); 
+  }
+  console.log('Connected to the database!');
+});
+
+const app = express();
+const port = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+const uploadsDir = path.join(__dirname, 'uploads');
+const processedDir = path.join(__dirname, 'processed');
+
+
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+if (!fs.existsSync(processedDir)) fs.mkdirSync(processedDir);
+
+const upload = multer({ dest: uploadsDir });
+
+app.post('/decode-barcode', upload.single('image'), async (req, res) => {
+  console.log('Received a request to decode a barcode.');
+
+  const file = req.file;
+  if (!file) {
+    console.error('No file uploaded.');
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const filePath = file.path;
+  console.log('File path for OCR:', filePath);
+
+  try {
+    const processedImagePath = await preprocessImage(filePath);
+    console.log('Starting OCR processing on preprocessed image...');
+
+    const text = await performOCR(processedImagePath);
+    const number = extractNumberFromText(text);
+
+    if (number) {
+      console.log('Extracted Number:', number);
+
+      
+      const status = await checkBarcode(number);
+      console.log('Barcode check result:', status);
+    //   if (status=='exists')
+    //   document.body.style.backgroundColor='green';
+    // else
+    // document.body.style.backgroundColor='red';
+      res.json({ extractedNumber: number, status });
+    } else {
+      console.error('No number found in the OCR text.');
+      res.status(400).json({ error: 'No number found in the image text' });
+    }
+  } catch (error) {
+    console.error('Error processing image with OCR:', error.message);
+    res.status(500).json({ error: 'Failed to process image with OCR', details: error.message });
+  } finally {
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.promises.unlink(filePath) 
+          .then(() => console.log('Temporary file deleted:', filePath))
+          .catch((cleanupError) => console.error('Error deleting temporary file:', cleanupError.message));
+      }
+    } catch (cleanupError) {
+      console.error('Error during file cleanup:', cleanupError.message);
+    }
+  }
+});
+
+const checkBarcode = (number) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT barcode FROM cdscodrugs WHERE barcode = ? 
+      UNION 
+      SELECT barcode FROM fdadrugs WHERE barcode = ?
+    `;
+    db.query(query, [number, number], (err, results) => {
+      if (err) {
+        console.error('Error checking barcode:', err.message);
+        reject(err);
+        return;
+      }
+      resolve(results.length > 0 ? 'exists' : 'not_found');
+    });
+  });
+};
+
+
+const preprocessImage = async (filePath) => {
+  const processedImagePath = path.join(processedDir, `${Date.now()}_processed_image.png`);
+  try {
+    const metadata = await sharp(filePath).metadata();
+
+    if (!metadata.width || !metadata.height) {
+      throw new Error('Could not retrieve image dimensions');
+    }
+
+    console.log('Image Dimensions:', metadata);
+
+    const cropHeight = Math.min(100, metadata.height - Math.floor(metadata.height * 0.7));
+    const cropWidth = metadata.width;
+    const cropTop = Math.floor(metadata.height * 0.7);
+
+    if (cropTop + cropHeight > metadata.height) {
+      throw new Error('Calculated cropping area exceeds image height.');
+    }
+
+    console.log(`Cropping area: top=${cropTop}, height=${cropHeight}, width=${cropWidth}`);
+
+    await sharp(filePath)
+      .extract({ left: 0, top: cropTop, width: cropWidth, height: cropHeight })
+      .resize({ width: 1500 })
+      .grayscale()
+      .normalize()
+      .sharpen()
+      .toFile(processedImagePath);
+
+    console.log('Image preprocessed and saved at:', processedImagePath);
+    return processedImagePath;
+  } catch (error) {
+    console.error('Error during image preprocessing:', error.message);
+    throw new Error('Image preprocessing failed');
+  }
+};
+
+
+const performOCR = async (processedImagePath) => {
+  try {
+    const { data: { text } } = await Tesseract.recognize(
+      processedImagePath,
+      'eng',
+      {
+        logger: (m) => console.log(m),
+        config: {
+          tessedit_char_whitelist: '0123456789', // Only digits
+        },
+      }
+    );
+
+    console.log('OCR Result:', text.trim());
+    return text.trim();
+  } catch (error) {
+    console.error('Error during OCR:', error.message);
+    throw new Error('OCR failed');
+  }
+};
+
+const extractNumberFromText = (text) => {
+  const regex = /\d{6}/g; 
+  const matches = text.match(regex);
+
+  return matches && matches.length > 0 ? matches[0] : null;
+};
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+app.get('/', (req, res) => {
+  res.send('Server is running! Use POST /decode-barcode to process image.');
+});

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Barcode App</title>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+</body>
+</html>
+
+
+
+last before number changing
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode Scanner</title>
+</head>
+<body>
+  <video id="video" width="320" height="240" autoplay></video>
+  <canvas id="canvas" style="display: none;"></canvas>
+  <button id="capture">Capture Image</button>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture');
+    const ctx = canvas.getContext('2d');
+
+    // Start the webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => console.log("Error accessing webcam: ", err));
+
+    // Capture the image when the button is clicked
+    captureButton.addEventListener('click', () => {
+      // Draw the current video frame to the canvas
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert the image to base64
+      const imageData = canvas.toDataURL('image/png');
+
+      // Log the image data to ensure it's correct
+      console.log('Captured image data (base64):', imageData);
+
+      // Send the image data to the backend
+      fetch('http://localhost:3001/decode-barcode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image: imageData })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Decoded barcode:', data);
+      })
+      .catch(err => {
+        console.error('Error sending image:', err);
+      });
+    });
+  </script>
+</body>
+</html>
+
+
+
+before changing in clg
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.0/dist/tesseract.min.js"></script> <!-- Add Tesseract.js -->
+</head>
+<body>
+  <video id="video" width="320" height="240" autoplay></video>
+  <canvas id="canvas" style="display: none;"></canvas>
+  <button id="capture">Capture Image</button>
+  <div id="output"></div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture');
+    const ctx = canvas.getContext('2d');
+    const outputDiv = document.getElementById('output');
+
+    // Start the webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => console.log("Error accessing webcam: ", err));
+
+    // Capture the image when the button is clicked
+    captureButton.addEventListener('click', () => {
+      // Draw the current video frame to the canvas
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert the image to base64
+      const imageData = canvas.toDataURL('image/png');
+
+      // Log the image data to ensure it's correct
+      console.log('Captured image data (base64):', imageData);
+
+      // Use Tesseract.js to extract text from the image
+      Tesseract.recognize(
+        imageData,
+        'eng', // Specify language (English)
+        {
+          logger: (m) => console.log(m), // Log progress
+        }
+      ).then(({ data: { text } }) => {
+        console.log('OCR Result:', text);
+        const number = extractNumberFromText(text);
+        
+        if (number) {
+          outputDiv.innerHTML = `Extracted Number: ${number}`;
+          
+          // Send the extracted number to the backend
+          sendNumberToBackend(number);
+        } else {
+          outputDiv.innerHTML = 'No number detected';
+        }
+      });
+    });
+
+    // Extract the number from the OCR result
+    const extractNumberFromText = (text) => {
+      const regex = /\d+/; // Match digits in the text
+      const result = text.match(regex);
+      return result ? result[0] : null;
+    };
+
+    // Send the number to the backend
+    const sendNumberToBackend = async (number) => {
+      try {
+        const response = await fetch('http://localhost:3001/query-database', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ number }),
+        });
+        const data = await response.json();
+        console.log('Database response:', data);
+      } catch (error) {
+        console.error('Error sending number to backend:', error);
+      }
+    };
+  </script>
+</body>
+</html>

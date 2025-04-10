@@ -1,0 +1,180 @@
+/* Global Styles */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', sans-serif;
+    height: 100%;
+    background-color: #f1f1f1;
+  }
+  
+  /* Signup Page */
+  .signup-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-image: url('bg.jpg');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(80%);
+  }
+  
+  .signup-form {
+    background: linear-gradient(135deg, hsla(301, 99%, 48%, 0.902), hsla(293, 85%, 51%, 0.902)); /* Gradient background for the form */
+    padding: 60px;
+    border-radius: 15px;
+    width: 380px; /* Increased width */
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3); /* More dramatic shadow for depth */
+    backdrop-filter: blur(10px); /* Soft blur effect for better contrast with background */
+    animation: fadeIn 1s ease-in-out; /* Animation to fade in the form */
+  }
+  
+  /* Animation for fading in the form */
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  .signup-form h2 {
+    font-size: 2.8rem; /* Increased font size */
+    margin-bottom: 30px;
+    text-align: center;
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 1px;
+    animation: slideIn 0.5s ease-out; /* Slide-in effect for the heading */
+  }
+  
+  /* Animation for sliding in the title */
+  @keyframes slideIn {
+    0% { transform: translateY(-30px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  
+  .signup-form input {
+    width: 100%;
+    padding: 14px; /* Increased padding for inputs */
+    margin: 15px 0; /* Increased margin for more spacing */
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    animation: bounceIn 1s ease-out; /* Input fields bounce in */
+  }
+  
+  /* Bounce-in effect for input fields */
+  @keyframes bounceIn {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  
+  /* Focus effect on inputs */
+  .signup-form input:focus {
+    outline: none;
+    border-color: hwb(298 22% 9%);
+    box-shadow: 0 0 10px rgba(203, 23, 206, 0.8);
+  }
+  
+  /* Signup Button Styles */
+  .signup-form button {
+    width: 100%;
+    padding: 15px;
+    background-color: hwb(298 22% 15%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    animation: pulse 2s infinite; /* Pulse effect on button */
+  }
+  
+  /* Pulse effect for button */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  .signup-form button:hover {
+    background-color: hwb(301 9% 22%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+  
+  .signup-form button:active {
+    background-color: hwb(305 12% 13%);
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Responsive Design for Smaller Screens */
+  @media (max-width: 480px) {
+    .signup-form {
+      width: 90%; /* Form will take 90% width on small screens */
+      padding: 40px;
+    }
+  
+    .signup-form h2 {
+      font-size: 2.2rem;
+    }
+  
+    .signup-form input {
+      padding: 12px;
+      font-size: 1rem;
+    }
+  
+    .signup-form button {
+      padding: 12px;
+      font-size: 1.1rem;
+    }
+  }
+  
+  /* Modal Styles */
+  .modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    background-color: rgba(0, 0, 0, 0.7); /* Black background with transparency */
+    animation: fadeInModal 0.5s ease-out;
+  }
+  
+  /* Modal Animation */
+  @keyframes fadeInModal {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  .modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%; /* Modal width */
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Close Button Styles */
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
+  
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  

@@ -1,0 +1,20 @@
+const sendImageToBackend = async (imageSrc) => {
+    try {
+      // Convert the base64 image string to a Blob
+      const response = await fetch(imageSrc);
+      const blob = await response.blob();
+  
+      // Create a FormData object
+      const formData = new FormData();
+      formData.append('image', blob, 'captured-image.jpg'); // Append the image blob
+  
+      const backendResponse = await fetch('http://localhost:3001/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await backendResponse.json();
+      console.log(data); // Handle the decoded result from the backend
+    } catch (error) {
+      console.error('Error sending image to backend:', error);
+    }
+  };

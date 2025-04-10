@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="signup.css">
+</head>
+<body>
+  <div class="signup-container">
+    <form class="signup-form" id="signup-form" onsubmit="handleSubmit(event)">
+      <h2>Create an Account</h2>
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter your username" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="Enter your email" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Create your password" required>
+
+     <!-- <label for="phone">Phone</label>
+      <input type="tel" id="phone" name="phone" placeholder="Enter your phone number">
+
+      <label for="address">Address</label>
+      <textarea id="address" name="address" placeholder="Enter your address"></textarea>-->
+
+      <button type="submit">Sign Up</button>
+    </form>
+  </div>
+
+  <script>
+    // Handle form submission
+    async function handleSubmit(event) {
+      event.preventDefault();
+
+      // Collect form data
+      const formData = {
+        Username: document.getElementById('username').value,
+        Email: document.getElementById('email').value,
+        Password: document.getElementById('password').value,
+       // phone: document.getElementById('phone').value,
+       // address: document.getElementById('address').value,
+      };
+
+      try {
+        // Send POST request to the backend
+        const response = await fetch('http://localhost:3000/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert(result.message || 'Sign-up successful!');
+        } else {
+          alert(result.message || 'Sign-up failed!');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+      }
+    }
+</script>
+</body>
+</html>
